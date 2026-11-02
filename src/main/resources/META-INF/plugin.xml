@@ -1,0 +1,77 @@
+<idea-plugin>
+  <id>de.nowakhub.commitlinesplitter</id>
+  <name>Commit Line Splitter</name>
+  <vendor email="github@nowakhub.de">Björn Nowak</vendor>
+
+  <description><![CDATA[
+    <p>
+      Split a Git commit <b>line by line</b>, right from the Git Log.
+    </p>
+    <p>
+      IntelliJ's built-in <i>Extract Selected Changes to Separate Commit…</i> can only move whole files.
+      <b>Commit Line Splitter</b> goes one step further: pick exactly which added and removed lines of a file
+      should move to a new commit, and leave the rest in the original commit.
+    </p>
+
+    <h3>How to use</h3>
+    <ol>
+      <li>Open <b>Git → Log</b> and select a commit on your current branch.</li>
+      <li>In the commit's changed files, right-click a file and choose
+          <b>Split Lines to Separate Commit…</b> (directly below the built-in extract action).</li>
+      <li>Tick the lines that should move. Use the gutter checkboxes, the per-change header, or <b>Space</b>
+          for the caret or selection.</li>
+      <li>Enter a message for the new commit and confirm. The new commit is placed directly after the original one.</li>
+    </ol>
+
+    <h3>Safe by design</h3>
+    <ul>
+      <li>The working tree and index are never touched, so it works even with uncommitted changes.</li>
+      <li>Conflicts are impossible: later commits keep their exact content and are only re-parented.</li>
+      <li>Original authors, author dates and message encodings are preserved byte-for-byte, including CRLF line endings and a missing final newline.</li>
+      <li>You are warned before rewriting commits that are already on a remote branch.</li>
+      <li>You can undo with one click from the notification.</li>
+    </ul>
+
+    <h3>Compatibility</h3>
+    <ul>
+      <li><b>Supported:</b> IntelliJ IDEA 2026.1, 2026.2 and 2026.3 (builds 261–263.*).
+          Verified with the JetBrains Plugin Verifier on 2026.1.5 and 2026.2.4.</li>
+      <li><b>Not supported:</b> IntelliJ IDEA 2025.3 and older, and 2027.1 and newer until a compatible update is released.</li>
+      <li>Other JetBrains IDEs 2026.x with the bundled Git plugin (e.g. PyCharm, WebStorm, GoLand) may work, but they are not tested.</li>
+    </ul>
+
+    <h3>Limitations</h3>
+    <ul>
+      <li>Requires linear history between the commit and HEAD (no merge commits).</li>
+      <li>Renamed or moved files and binary files are not supported.</li>
+    </ul>
+  ]]></description>
+
+  <change-notes><![CDATA[
+    <h3>1.0.1</h3>
+    <ul>
+      <li>Fixed: "Access from Event Dispatch Thread (EDT) is not allowed" error after splitting or undoing.
+          The repository and Git Log are now refreshed in the background.</li>
+    </ul>
+    <h3>1.0.0</h3>
+    <ul>
+      <li>Initial release: line-level splitting of commits from the Git Log, with hunk toggles, keyboard support and undo.</li>
+    </ul>
+  ]]></change-notes>
+
+  <depends>com.intellij.modules.platform</depends>
+  <depends>Git4Idea</depends>
+
+  <actions>
+    <action id="CommitLineSplitter.SplitFileLines"
+            class="de.nowakhub.commitlinesplitter.SplitLinesAction"
+            text="Split Lines to Separate Commit..."
+            description="Pick individual lines of this file to move into a new commit after this one">
+      <add-to-group group-id="Vcs.RepositoryChangesBrowserMenu" relative-to-action="Git.InMemory.Extract.Selected.Changes" anchor="after"/>
+    </action>
+  </actions>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <notificationGroup id="Commit Line Splitter" displayType="BALLOON"/>
+  </extensions>
+</idea-plugin>
