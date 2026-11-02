@@ -44,6 +44,19 @@ intellijPlatform {
             create(IntelliJPlatformType.IntellijIdea, "2026.2.4")
         }
     }
+    // Signing & publishing read secrets from environment variables (never commit them).
+    // Either pass file paths (CERTIFICATE_CHAIN_FILE / PRIVATE_KEY_FILE) or the contents
+    // (CERTIFICATE_CHAIN / PRIVATE_KEY, raw or Base64) – the latter is handy for CI secrets.
+    signing {
+        providers.environmentVariable("CERTIFICATE_CHAIN_FILE").orNull?.let { certificateChainFile = file(it) }
+        providers.environmentVariable("PRIVATE_KEY_FILE").orNull?.let { privateKeyFile = file(it) }
+        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+    }
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
+    }
     buildSearchableOptions = false
     instrumentCode = false
 }

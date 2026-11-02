@@ -1,6 +1,6 @@
 # Commit Line Splitter — IntelliJ IDEA 2026.x plugin
 
-Author: Björn Nowak (github@nowakhub.de)
+Author: Björn Nowak (github@nowakhub.de) · Source: https://github.com/bjoern-nowak/commit-line-splitter · Issues: https://github.com/bjoern-nowak/commit-line-splitter/issues
 
 A line-level companion to IntelliJ's built-in **Extract Selected Changes to Separate Commit...**.
 The built-in action moves whole files. This plugin lets you pick **individual lines of one file**.

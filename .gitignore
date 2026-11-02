@@ -4,3 +4,10 @@ build/
 .kotlin/
 *.iml
 .idea/
+
+# plugin signing material / secrets — never commit
+*.pem
+*.crt
+*.key
+local.properties
+.plugin-signing/

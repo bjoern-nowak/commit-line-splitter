@@ -1,7 +1,7 @@
 <idea-plugin>
   <id>de.nowakhub.commitlinesplitter</id>
   <name>Commit Line Splitter</name>
-  <vendor email="github@nowakhub.de">Björn Nowak</vendor>
+  <vendor email="github@nowakhub.de" url="https://github.com/bjoern-nowak/commit-line-splitter">Björn Nowak</vendor>
 
   <description><![CDATA[
     <p>
@@ -45,6 +45,11 @@
       <li>Requires linear history between the commit and HEAD (no merge commits).</li>
       <li>Renamed or moved files and binary files are not supported.</li>
     </ul>
+
+    <p>
+      Open source (Apache 2.0): <a href="https://github.com/bjoern-nowak/commit-line-splitter">source code</a> ·
+      <a href="https://github.com/bjoern-nowak/commit-line-splitter/issues">report an issue</a>
+    </p>
   ]]></description>
 
   <change-notes><![CDATA[
