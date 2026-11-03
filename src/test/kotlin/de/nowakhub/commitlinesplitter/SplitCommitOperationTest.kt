@@ -12,9 +12,10 @@ import java.io.File
 import java.nio.file.Files
 
 /** Runs the real `git` binary against a throw-away repository. */
-class ProcessGitRunner(private val dir: File) : GitRunner {
+class ProcessGitRunner(private val dir: File, private val env: Map<String, String> = emptyMap()) : GitRunner {
   override fun run(command: String, args: List<String>, stdin: ByteArray?): ByteArray {
     val pb = ProcessBuilder(listOf("git", command) + args).directory(dir)
+    pb.environment().putAll(env)
     val p = pb.start()
     p.outputStream.use { if (stdin != null) it.write(stdin) }
     val err = Thread { p.errorStream.readBytes() }.also { it.start() }
@@ -275,5 +276,66 @@ class SplitCommitOperationTest {
     write("f.txt", "1\n"); val a = commit("A")
     git("update-ref", "refs/remotes/origin/main", a)
     assertEquals(listOf("origin/main"), plumbing.remoteBranchesContaining(a))
+  }
+
+  // --- committer identity (must match what `git commit` would record) ---
+
+  private val identRegex = Regex("^(.*) (\\d+) ([+-]\\d{4})$")
+
+  /** `git var GIT_COMMITTER_IDENT`, ISO-8859-1 decoded like our raw header values. */
+  private fun gitIdent(env: Map<String, String> = emptyMap()): String {
+    val pb = ProcessBuilder("git", "var", "GIT_COMMITTER_IDENT").directory(dir)
+    pb.environment().putAll(env)
+    val p = pb.start()
+    val out = p.inputStream.readBytes()
+    check(p.waitFor() == 0)
+    return String(out, Charsets.ISO_8859_1).trim()
+  }
+
+  private fun assertSameIdent(expected: String, actual: String) {
+    val e = identRegex.matchEntire(expected)!!.groupValues
+    val a = identRegex.matchEntire(actual)!!.groupValues
+    assertEquals("name and e-mail", e[1], a[1])
+    assertEquals("time zone", e[3], a[3])
+    assertTrue("timestamp $actual vs $expected", kotlin.math.abs(e[2].toLong() - a[2].toLong()) <= 60)
+  }
+
+  @Test fun `committer identity matches git`() {
+    assertSameIdent(gitIdent(), plumbing.currentCommitterLine())
+  }
+
+  @Test fun `committer identity honours committer config, environment, crud and non-ASCII names like git`() {
+    git("config", "user.name", " .Björn Nowak, ")
+    assertSameIdent(gitIdent(), plumbing.currentCommitterLine())
+
+    git("config", "committer.name", "Commit Person")
+    git("config", "committer.email", "<commit@example.com>")
+    assertSameIdent(gitIdent(), plumbing.currentCommitterLine())
+
+    val env = mapOf("GIT_COMMITTER_NAME" to "Env Name", "GIT_COMMITTER_EMAIL" to "env@example.com")
+    assertSameIdent(gitIdent(env), plumbing.currentCommitterLine(env = { env[it] ?: System.getenv(it) }))
+  }
+
+  @Test fun `committer time zone is formatted like git`() {
+    val now = java.time.ZonedDateTime.of(2026, 1, 2, 3, 4, 5, 0, java.time.ZoneOffset.ofHoursMinutes(-3, -30))
+    val line = plumbing.currentCommitterLine(env = { null }, now = now)
+    assertEquals("Committer <committer@example.com> ${now.toEpochSecond()} -0330", line)
+  }
+
+  @Test fun `missing identity is reported`() {
+    val home = Files.createTempDirectory("split-lines-home").toFile()
+    try {
+      git("config", "--unset", "user.name")
+      // isolate from the global/system git config of the machine running the tests
+      val isolated = ProcessGitRunner(dir, mapOf("HOME" to home.path, "XDG_CONFIG_HOME" to home.path, "GIT_CONFIG_NOSYSTEM" to "1"))
+      GitPlumbing(isolated).currentCommitterLine(env = { null })
+      fail("expected SplitException")
+    }
+    catch (e: SplitException) {
+      assertTrue(e.message, e.message!!.contains("user.name"))
+    }
+    finally {
+      home.deleteRecursively()
+    }
   }
 }

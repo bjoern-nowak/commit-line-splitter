@@ -1,5 +1,6 @@
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     id("java")
@@ -10,7 +11,17 @@ plugins {
 group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 
-kotlin { jvmToolchain(21) }
+kotlin {
+    jvmToolchain(21)
+    compilerOptions {
+        // The plugin runs on the Kotlin stdlib bundled with the IDE, so it must not use stdlib API newer than
+        // the one shipped with the oldest supported IDE (2024.2 bundles Kotlin 1.9.24).
+        apiVersion = KotlinVersion.KOTLIN_1_9
+        languageVersion = KotlinVersion.KOTLIN_2_1
+        // Kotlin flags API level 1.9 itself as deprecated; it stays required until 2024.2 support is dropped.
+        freeCompilerArgs.add("-Xsuppress-version-warnings")
+    }
+}
 
 repositories {
     maven("https://cache-redirector.jetbrains.com/repo1.maven.org/maven2")
@@ -19,7 +30,7 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        intellijIdea(providers.gradleProperty("platformVersion"))
+        create(providers.gradleProperty("platformType").map(IntelliJPlatformType::valueOf), providers.gradleProperty("platformVersion"))
         bundledPlugin("Git4Idea")
         testFramework(TestFrameworkType.Platform)
         pluginVerifier()
@@ -34,14 +45,17 @@ intellijPlatform {
         name = "Commit Line Splitter"
         version = providers.gradleProperty("pluginVersion")
         ideaVersion {
-            sinceBuild = "261"
+            sinceBuild = "242"
             untilBuild = "263.*"
         }
     }
     pluginVerification {
         ides {
-            create(IntelliJPlatformType.IntellijIdea, "2026.1.5")
-            create(IntelliJPlatformType.IntellijIdea, "2026.2.4")
+            // Latest release of every supported major version (override with -PverifyIdes=a,b,... to verify a subset)
+            providers.gradleProperty("verifyIdes").orNull?.split(',')?.map(String::trim)
+                ?.forEach { create(IntelliJPlatformType.IntellijIdea, it) }
+                ?: listOf("2024.2.6", "2024.3.7.1", "2025.1.7.2", "2025.2.6.4", "2025.3.6.2", "2026.1.5.1", "2026.2.4", "263.7307.112")
+                    .forEach { create(IntelliJPlatformType.IntellijIdea, it) }
         }
     }
     // Signing & publishing read secrets from environment variables (never commit them).

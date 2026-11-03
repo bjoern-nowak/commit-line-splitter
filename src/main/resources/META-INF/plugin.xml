@@ -17,7 +17,7 @@
     <ol>
       <li>Open <b>Git → Log</b> and select a commit on your current branch.</li>
       <li>In the commit's changed files, right-click a file and choose
-          <b>Split Lines to Separate Commit…</b> (directly below the built-in extract action).</li>
+          <b>Split Lines to Separate Commit…</b> (directly below the built-in extract action, if your IDE has it).</li>
       <li>Tick the lines that should move. Use the gutter checkboxes, the per-change header, or <b>Space</b>
           for the caret or selection.</li>
       <li>Enter a message for the new commit and confirm. The new commit is placed directly after the original one.</li>
@@ -34,10 +34,13 @@
 
     <h3>Compatibility</h3>
     <ul>
-      <li><b>Supported:</b> IntelliJ IDEA 2026.1, 2026.2 and 2026.3 (builds 261–263.*).
-          Verified with the JetBrains Plugin Verifier on 2026.1.5 and 2026.2.4.</li>
-      <li><b>Not supported:</b> IntelliJ IDEA 2025.3 and older, and 2027.1 and newer until a compatible update is released.</li>
-      <li>Other JetBrains IDEs 2026.x with the bundled Git plugin (e.g. PyCharm, WebStorm, GoLand) may work, but they are not tested.</li>
+      <li><b>Supported:</b> IntelliJ IDEA 2024.2 to 2026.3 (builds 242–263.*).
+          Verified with the JetBrains Plugin Verifier against the latest release of each of these versions, without
+          compatibility problems or deprecated API usage.</li>
+      <li>In IntelliJ IDEA 2024.2 to 2025.2 the built-in <i>Extract Selected Changes to Separate Commit…</i> does not exist yet;
+          <b>Split Lines to Separate Commit…</b> is then the last entry of the same context menu.</li>
+      <li><b>Not supported:</b> IntelliJ IDEA 2024.1 and older, and 2027.1 and newer until a compatible update is released.</li>
+      <li>Other JetBrains IDEs with the bundled Git plugin (e.g. PyCharm, WebStorm, GoLand) may work, but they are not tested.</li>
     </ul>
 
     <h3>Limitations</h3>
@@ -53,6 +56,11 @@
   ]]></description>
 
   <change-notes><![CDATA[
+    <h3>1.0.2</h3>
+    <ul>
+      <li>Now supports IntelliJ IDEA 2024.2 to 2026.3 (previously 2026.1 to 2026.3).</li>
+      <li>No longer uses deprecated IntelliJ Platform API.</li>
+    </ul>
     <h3>1.0.1</h3>
     <ul>
       <li>Fixed: "Access from Event Dispatch Thread (EDT) is not allowed" error after splitting or undoing.

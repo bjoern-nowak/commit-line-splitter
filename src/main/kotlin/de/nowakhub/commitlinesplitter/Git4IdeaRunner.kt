@@ -26,7 +26,7 @@ class Git4IdeaRunner(private val project: Project, private val root: VirtualFile
     "cat-file" -> GitCommand.CAT_FILE
     "ls-tree" -> GitCommand.LS_TREE
     "hash-object" -> GitCommand.HASH_OBJECT
-    "commit-tree" -> GitCommand.COMMIT_TREE
+    "config" -> GitCommand.CONFIG
     "update-ref" -> GitCommand.UPDATE_REF
     "branch" -> GitCommand.BRANCH
     else -> error("Unsupported git command: $command")

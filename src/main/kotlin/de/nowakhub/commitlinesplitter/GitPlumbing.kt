@@ -1,5 +1,9 @@
 package de.nowakhub.commitlinesplitter
 
+import java.time.ZonedDateTime
+import java.util.Locale
+import kotlin.math.abs
+
 /** Runs a git sub-command in the repository root. Must throw on failure. */
 interface GitRunner {
   fun run(command: String, args: List<String>, stdin: ByteArray? = null): ByteArray
@@ -145,13 +149,49 @@ class GitPlumbing(private val git: GitRunner) {
   }
 
   /**
-   * The committer identity git would use right now (from the user's git config / environment), as a raw header value.
-   * Determined by letting `git commit-tree` create a throw-away (unreferenced) commit of the empty tree.
+   * The committer identity git would use right now, as a raw header value ("Name <mail> 1700000000 +0100").
+   *
+   * Resolved like git does for `git commit`: name from `GIT_COMMITTER_NAME`, `committer.name` or `user.name`;
+   * e-mail from `GIT_COMMITTER_EMAIL`, `committer.email`, `user.email` or `EMAIL`; current time and local zone.
+   * (Uses `git config` instead of `git commit-tree`/`git var`, which the IDE's git integration
+   * does not offer in all supported IDE versions.)
    */
-  fun currentCommitterLine(): String {
-    val emptyTree = String(git.run("hash-object", listOf("-t", "tree", "-w", "--stdin"), stdin = ByteArray(0)), Charsets.UTF_8).trim()
-    val probe = String(git.run("commit-tree", listOf(emptyTree), stdin = "probe\n".toByteArray()), Charsets.UTF_8).trim()
-    return readCommit(probe).committerLine
+  fun currentCommitterLine(
+    env: (String) -> String? = System::getenv,
+    now: ZonedDateTime = ZonedDateTime.now(),
+  ): String {
+    val config = readConfig()
+    fun pick(envVar: String, vararg keys: String): String? =
+      env(envVar)?.toByteArray(Charsets.UTF_8)?.let { String(it, L1) }
+      ?: keys.firstNotNullOfOrNull { config[it] }
+    val name = withoutCrud(pick("GIT_COMMITTER_NAME", "committer.name", "user.name").orEmpty())
+    val email = withoutCrud(
+      pick("GIT_COMMITTER_EMAIL", "committer.email", "user.email")
+      ?: env("EMAIL")?.toByteArray(Charsets.UTF_8)?.let { String(it, L1) }
+      ?: ""
+    )
+    if (name.isEmpty() || email.isEmpty()) {
+      throw SplitException(
+        "Git does not know who you are. Please set your identity, e.g.:\n" +
+        "git config --global user.name \"Your Name\"\ngit config --global user.email \"you@example.com\""
+      )
+    }
+    val offsetMinutes = now.offset.totalSeconds / 60
+    val zone = String.format(Locale.ROOT, "%s%02d%02d",
+                             if (offsetMinutes < 0) "-" else "+", abs(offsetMinutes) / 60, abs(offsetMinutes) % 60)
+    return "$name <$email> ${now.toEpochSecond()} $zone"
+  }
+
+  /** All effective git config values (last one wins), keys as printed by git, values ISO-8859-1 decoded (byte-preserving). */
+  private fun readConfig(): Map<String, String> {
+    val out = String(git.run("config", listOf("--list", "-z")), L1)
+    val result = HashMap<String, String>()
+    for (rec in out.split('\u0000')) {
+      if (rec.isEmpty()) continue
+      val nl = rec.indexOf('\n')
+      if (nl < 0) result[rec] = "" else result[rec.substring(0, nl)] = rec.substring(nl + 1)
+    }
+    return result
   }
 
   /** Writes a commit object directly, preserving [authorLine] byte-for-byte. */
@@ -198,6 +238,12 @@ class GitPlumbing(private val git: GitRunner) {
       String(path.trim('/').toByteArray(Charsets.UTF_8), L1).split('/').also {
         if (it.any(String::isEmpty)) throw SplitException("Invalid path '$path'")
       }
+
+    /** Same normalization git applies to identity names and e-mails (`strbuf_addstr_without_crud` in ident.c). */
+    fun withoutCrud(value: String): String {
+      fun crud(c: Char) = c.code <= 32 || c in ",:;<>\"\\'"
+      return value.trim(::crud).filterNot { it == '\n' || it == '<' || it == '>' }
+    }
 
     private fun hexToBytes(hex: String): ByteArray = ByteArray(hex.length / 2) { i ->
       hex.substring(2 * i, 2 * i + 2).toInt(16).toByte()

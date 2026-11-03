@@ -1,6 +1,10 @@
 package de.nowakhub.commitlinesplitter
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.plugins.DynamicPlugins
+import com.intellij.ide.plugins.IdeaPluginDescriptorImpl
+import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.util.Disposer
@@ -22,9 +26,20 @@ class PluginIntegrationTest : BasePlatformTestCase() {
     assertInstanceOf(ours, SplitLinesAction::class.java)
     val group = am.getAction("Vcs.RepositoryChangesBrowserMenu") as DefaultActionGroup
     val ids = group.getChildActionsOrStubs().map { am.getId(it) }
+    val position = ids.indexOf("CommitLineSplitter.SplitFileLines")
+    assertTrue("action in menu: $ids", position >= 0)
     val official = ids.indexOf("Git.InMemory.Extract.Selected.Changes")
-    assertTrue("official action present: $ids", official >= 0)
-    assertEquals(official + 1, ids.indexOf("CommitLineSplitter.SplitFileLines"))
+    if (official >= 0) assertEquals("directly below the official action: $ids", official + 1, position)
+    else assertEquals("at the end of the menu (IDE before 2025.3 has no official action): $ids", ids.lastIndex, position)
+  }
+
+  /**
+   * The Plugin Verifier can only say the plugin is "probably" dynamic. This asks the IDE's own check, the one that
+   * decides whether installing, updating or uninstalling the plugin needs a restart.
+   */
+  fun `test plugin can be loaded and unloaded without IDE restart`() {
+    val descriptor = PluginManagerCore.getPlugin(PluginId.getId("de.nowakhub.commitlinesplitter")) as IdeaPluginDescriptorImpl
+    assertNull(DynamicPlugins.checkCanUnloadWithoutRestart(descriptor))
   }
 
   fun `test dialog builds editor and toggles lines and hunks`() {

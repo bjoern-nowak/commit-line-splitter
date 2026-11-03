@@ -88,7 +88,7 @@ class SplitLinesAction : DumbAwareAction() {
           op.loadInput(ctx.commitHash, ctx.relativePath),
           plumbing.readCommit(ctx.commitHash).message,
           plumbing.remoteBranchesContaining(ctx.commitHash),
-          ReadAction.compute<Charset, RuntimeException> { ctx.filePath.getCharset(project) },
+          ReadAction.nonBlocking<Charset> { ctx.filePath.getCharset(project) }.executeSynchronously(),
         )
       }, "Loading Commit…", true, project)
     }

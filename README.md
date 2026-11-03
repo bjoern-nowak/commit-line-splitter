@@ -1,4 +1,4 @@
-# Commit Line Splitter — IntelliJ IDEA 2026.x plugin
+# Commit Line Splitter — IntelliJ IDEA plugin
 
 Author: Björn Nowak (github@nowakhub.de) · Source: https://github.com/bjoern-nowak/commit-line-splitter · Issues: https://github.com/bjoern-nowak/commit-line-splitter/issues
 
@@ -9,7 +9,8 @@ The built-in action moves whole files. This plugin lets you pick **individual li
 
 1. Open **Git → Log** and select a commit on your current branch.
 2. In the commit's changed-files panel, right-click **one** file and choose
-   **Split Lines to Separate Commit...** (it appears right below the built-in extract action).
+   **Split Lines to Separate Commit...** (it appears right below the built-in extract action;
+   in IDE versions before 2025.3, which don't have that action, it is the last menu entry).
 3. In the dialog:
    - Each added (`+`) or removed (`-`) line has a checkbox in the gutter. **Ticked lines move to a new commit**
      that is placed directly **after** the original commit. Unticked lines stay in the original commit.
@@ -36,13 +37,16 @@ with uncommitted changes. Authors and author dates are preserved byte-for-byte. 
 
 | IntelliJ IDEA version | Build | Status |
 |---|---|---|
-| 2025.3 and older | ≤ 253 | Not supported (cannot be installed) |
-| 2026.1 | 261 | Supported. Verified on 2026.1.5 with the Plugin Verifier and the test suite |
-| 2026.2 | 262 | Supported. Verified on 2026.2.4 with the Plugin Verifier |
-| 2026.3 | 263 | Allowed, but not verified yet |
+| 2024.1 and older | ≤ 241 | Not supported (cannot be installed) |
+| 2024.2 – 2025.2 | 242 – 252 | Supported. Verified with the Plugin Verifier; the plugin's menu entry is the last one in the menu |
+| 2025.3 – 2026.3 | 253 – 263 | Supported. Verified with the Plugin Verifier; the menu entry appears right below the built-in extract action |
 | 2027.1 and newer | ≥ 271 | Not supported until an update raises `untilBuild` |
 
-Other JetBrains IDEs 2026.x with the bundled Git plugin (PyCharm, WebStorm, GoLand, …) may work, but they are not tested.
+The Plugin Verifier is run against the latest release of every supported version and reports no compatibility problems and
+no deprecated, experimental or internal API usage. The tests run on 2024.2 (the oldest supported version, which the plugin is
+compiled against) and on 2026.1.
+
+Other JetBrains IDEs with the bundled Git plugin (PyCharm, WebStorm, GoLand, …) may work, but they are not tested.
 
 ## Limitations
 
@@ -56,9 +60,11 @@ Other JetBrains IDEs 2026.x with the bundled Git plugin (PyCharm, WebStorm, GoLa
 ## Build
 
 ```
-./gradlew buildPlugin      # -> build/distributions/commit-line-splitter-1.0.1.zip
-./gradlew test             # unit, git-integration and headless-IDE tests
-./gradlew verifyPlugin     # JetBrains Plugin Verifier against IDEA 2026.1.5 and 2026.2.4
+./gradlew buildPlugin      # -> build/distributions/commit-line-splitter-1.0.2.zip
+./gradlew test             # unit, git-integration and headless-IDE tests (on IDEA 2024.2)
+./gradlew test -PplatformType=IntellijIdea -PplatformVersion=2026.1.5   # same tests on a newer IDE
+./gradlew verifyPlugin     # JetBrains Plugin Verifier against IDEA 2024.2 … 2026.3
+./gradlew verifyPlugin -PverifyIdes=2026.1.5.1,2026.2.4                 # only some IDE versions
 ./gradlew runIde           # start a sandbox IDE with the plugin
 ```
 
